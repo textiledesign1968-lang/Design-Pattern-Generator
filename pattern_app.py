@@ -22,6 +22,11 @@ cols = st.slider("Columns", 1, 20, 5)
 if uploaded_file:
     img = Image.open(uploaded_file)
     img = img.convert("RGBA")  # ensure alpha channel
+
+    # --- Automatically resize if too large ---
+    max_size = 1000  # max width or height
+    img.thumbnail((max_size, max_size), Image.ANTIALIAS)
+
     w, h = img.size
     canvas = Image.new("RGBA", (w*cols, h*rows), (255,255,255,0))
 

@@ -24,7 +24,7 @@ if uploaded_file:
 
     # ----- Resize if too large -----
     max_size = 1000  # max width or height
-    img.thumbnail((max_size, max_size), Image.ANTIALIAS)
+    img.thumbnail((max_size, max_size), resample=Image.Resampling.LANCZOS)
 
     w, h = img.size
     canvas = Image.new("RGBA", (w*cols, h*rows), (255,255,255,0))

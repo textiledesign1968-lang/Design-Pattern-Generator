@@ -5,75 +5,68 @@ import numpy as np
 st.set_page_config(page_title="Design Pattern Generator", layout="wide")
 st.title("🎨 Design Pattern Generator")
 
-# Upload motif
-uploaded_file = st.file_uploader("Upload a motif (PNG or JPG)", type=["png", "jpg", "jpeg"])
-if uploaded_file:
-    motif = Image.open(uploaded_file).convert("RGBA")
-    
-    st.sidebar.header("Pattern Settings")
-    repeat_type = st.sidebar.selectbox(
-        "Select repeat type",
-        [
-            "Straight",
-            "Half Drop",
-            "Brick",
-            "Mirror",
-            "Ogee",
-            "Toss",
-            "Hex",
-            "Diamond",
-            "Radial"
-        ]
-    )
-    rows = st.sidebar.slider("Rows", 1, 20, 5)
-    cols = st.sidebar.slider("Columns", 1, 20, 5)
-    rotation = st.sidebar.slider("Rotation (for toss/hex/diamond)", 0, 360, 0)
-    
-    # Create blank canvas
-    width, height = motif.size
-    canvas_width = cols * width
-    canvas_height = rows * height
-    canvas = Image.new("RGBA", (canvas_width, canvas_height), (255, 255, 255, 0))
-    
-    for row in range(rows):
-        for col in range(cols):
-            x = col * width
-            y = row * height
-            temp = motif.copy()
-            
-            # Apply repeat pattern offsets
-            if repeat_type == "Half Drop" and row % 2 == 1:
-                x += width // 2
-            elif repeat_type == "Brick" and row % 2 == 1:
-                x += width // 2
-            elif repeat_type == "Mirror":
-                if (row + col) % 2 == 1:
-                    temp = ImageOps.mirror(temp)
-            elif repeat_type == "Ogee":
-                if row % 2 == 1:
-                    y += height // 2
-            elif repeat_type == "Toss":
-                temp = temp.rotate(np.random.randint(0, 360))
-            elif repeat_type == "Hex":
-                if row % 2 == 1:
-                    x += width // 2
-            elif repeat_type == "Diamond":
-                if (row + col) % 2 == 0:
-                    temp = temp.rotate(45)
-            elif repeat_type == "Radial":
-                # For simplicity, place motifs rotated around center
-                cx = canvas_width // 2
-                cy = canvas_height // 2
-                temp = temp.rotate(rotation)
-                x = cx + int(np.cos(np.radians(rotation * col)) * 100) - width//2
-                y = cy + int(np.sin(np.radians(rotation * row)) * 100) - height//2
+# --------------- Repeat Options ---------------
+repeat_options = [
+    "Straight", "Half Drop", "Brick", "Mirror",
+    "Ogee", "Toss", "Hex", "Diamond", "Radial"
+]
 
-            canvas.paste(temp, (x, y), temp)
-    
+# --------------- User Inputs on Main Page ---------------
+uploaded_file = st.file_uploader("Upload your motif (PNG/JPG)", type=["png","jpg","jpeg"])
+
+repeat_type = st.selectbox("Select repeat type", repeat_options)
+rows = st.slider("Rows", 1, 20, 5)
+cols = st.slider("Columns", 1, 20, 5)
+
+# --------------- Pattern Generation ---------------
+if uploaded_file:
+    img = Image.open(uploaded_file)
+    img = img.convert("RGBA")  # ensure alpha channel
+    w, h = img.size
+    canvas = Image.new("RGBA", (w*cols, h*rows), (255,255,255,0))
+
+    for i in range(rows):
+        for j in range(cols):
+            x = j*w
+            y = i*h
+            tile = img.copy()
+
+            # Apply repeat types
+            if repeat_type == "Mirror":
+                if (i+j)%2 == 1:
+                    tile = ImageOps.mirror(tile)
+            elif repeat_type == "Half Drop":
+                y_offset = int(h/2) if j%2 == 1 else 0
+                y += y_offset
+            elif repeat_type == "Brick":
+                x_offset = int(w/2) if i%2 == 1 else 0
+                x += x_offset
+            elif repeat_type == "Ogee":
+                x_offset = int(w/2) if i%2 == 1 else 0
+                y_offset = int(h/2) if j%2 == 1 else 0
+                x += x_offset
+                y += y_offset
+            elif repeat_type == "Toss":
+                x += np.random.randint(-w//2, w//2)
+                y += np.random.randint(-h//2, h//2)
+            elif repeat_type == "Hex":
+                x_offset = int(w/2) if i%2 == 1 else 0
+                y += int(h*0.75)*i
+                x += x_offset
+            elif repeat_type == "Diamond":
+                x_offset = int(w/2) if (i+j)%2==1 else 0
+                y_offset = int(h/2) if (i+j)%2==1 else 0
+                x += x_offset
+                y += y_offset
+            elif repeat_type == "Radial":
+                x = int(cols*w/2 - w/2 + (j-cols/2)*w)
+                y = int(rows*h/2 - h/2 + (i-rows/2)*h)
+
+            canvas.paste(tile, (int(x), int(y)), tile)
+
     st.image(canvas, use_column_width=True)
-    
-    # Download button
-    buf = st.sidebar.button("Download PNG")
-    if buf:
+
+    # Download Button
+    if st.button("Download PNG"):
         canvas.save("pattern.png")
-        st.success("Pattern saved as pattern.png! Check your local downloads.")
+        st.success("Pattern saved as pattern.png! Check your downloads.")
